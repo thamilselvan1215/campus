@@ -9,21 +9,21 @@ from models import Base, Staff
 Base.metadata.create_all(bind=engine)
 
 STAFF_DATA = [
-    {"name": "Amara Okafor",    "role": "Electrician",         "phone": "+27-11-000-0001", "building": "Engineering Block"},
-    {"name": "Sipho Ndlovu",    "role": "Electrician",         "phone": "+27-11-000-0002", "building": "Science Block"},
-    {"name": "Fatima Hassan",   "role": "Plumber",             "phone": "+27-11-000-0003", "building": "Residence A"},
-    {"name": "Kagiso Molefe",   "role": "Plumber",             "phone": "+27-11-000-0004", "building": "Residence B"},
-    {"name": "Thabo Dlamini",   "role": "IT Technician",       "phone": "+27-11-000-0005", "building": "Admin Block"},
-    {"name": "Zanele Khumalo",  "role": "IT Technician",       "phone": "+27-11-000-0006", "building": "Library"},
-    {"name": "Bongani Sithole", "role": "Cleaner",             "phone": "+27-11-000-0007", "building": "Engineering Block"},
-    {"name": "Nomsa Vilakazi",  "role": "Cleaner",             "phone": "+27-11-000-0008", "building": "Science Block"},
-    {"name": "Ravi Patel",      "role": "HVAC Technician",     "phone": "+27-11-000-0009", "building": "Admin Block"},
-    {"name": "Leilani Mokoena", "role": "Security Officer",    "phone": "+27-11-000-0010", "building": "Main Gate"},
-    {"name": "Aiden Ferreira",  "role": "Civil Technician",   "phone": "+27-11-000-0011", "building": "Engineering Block"},
-    {"name": "Precious Nkosi",  "role": "General Maintenance", "phone": "+27-11-000-0012", "building": "Residence A"},
-    {"name": "Oluwaseun Adeyemi","role": "Pest Control Officer","phone": "+27-11-000-0013", "building": "Cafeteria"},
-    {"name": "Miriam Zwane",    "role": "General Maintenance", "phone": "+27-11-000-0014", "building": "Sports Complex"},
-    {"name": "Neo Mahlangu",    "role": "IT Support",          "phone": "+27-11-000-0015", "building": "Library"},
+    {"name": "Thamil",   "role": "Electrician",          "email": "thamilselvan0240@gmail.com",   "phone": "+91-000-000-0001", "building": "Engineering Block"},
+    {"name": "Ragul",    "role": "Electrician",          "email": "thamilselvan0240@gmail.com",   "phone": "+91-000-000-0002", "building": "Science Block"},
+    {"name": "Indhu",    "role": "Plumber",              "email": "thamilselvan0240@gmail.com",   "phone": "+91-000-000-0003", "building": "Residence A"},
+    {"name": "Prianka", "role": "Plumber",              "email": "indhumathikumar15@gmail.com", "phone": "+91-000-000-0004", "building": "Residence B"},
+    {"name": "Mohana",   "role": "IT Technician",        "email": "indhumathikumar15@gmail.com", "phone": "+91-000-000-0005", "building": "Admin Block"},
+    {"name": "Hari",     "role": "IT Technician",        "email": "indhumathikumar15@gmail.com", "phone": "+91-000-000-0006", "building": "Library"},
+    {"name": "Athesh",   "role": "Cleaner",              "email": "raagshiva@gmail.com",         "phone": "+91-000-000-0007", "building": "Engineering Block"},
+    {"name": "Pori",     "role": "Cleaner",              "email": "raagshiva@gmail.com",         "phone": "+91-000-000-0008", "building": "Science Block"},
+    {"name": "Siva",     "role": "HVAC Technician",      "email": "raagshiva@gmail.com",         "phone": "+91-000-000-0009", "building": "Admin Block"},
+    {"name": "Madesh",   "role": "Security Officer",     "email": "adhavankuppusamy@gmail.com",  "phone": "+91-000-000-0010", "building": "Main Gate"},
+    {"name": "Mugilan",  "role": "Civil Technician",     "email": "adhavankuppusamy@gmail.com",  "phone": "+91-000-000-0011", "building": "Engineering Block"},
+    {"name": "Jeeva",    "role": "General Maintenance",  "email": "adhavankuppusamy@gmail.com",  "phone": "+91-000-000-0012", "building": "Residence A"},
+    {"name": "Sabari",   "role": "Pest Control Officer", "email": "spyeditz0240@gmail.com",      "phone": "+91-000-000-0013", "building": "Cafeteria"},
+    {"name": "Giri",     "role": "General Maintenance",  "email": "spyeditz0240@gmail.com",      "phone": "+91-000-000-0014", "building": "Sports Complex"},
+    {"name": "Niranjan", "role": "IT Support",           "email": "spyeditz0240@gmail.com",      "phone": "+91-000-000-0015", "building": "Library"},
 ]
 
 

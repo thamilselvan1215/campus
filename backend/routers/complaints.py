@@ -8,13 +8,15 @@ import random
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Complaint, Staff
 from schemas import ComplaintCreate, ComplaintOut, StatusUpdate, RejectionCreate
 from agents import CoordinatorAgent
+from limiter import limiter
+from services.websocket_service import manager
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
@@ -23,7 +25,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/", response_model=ComplaintOut)
+@limiter.limit("5/minute")
 def submit_complaint(
+    request: Request,
+    background_tasks: BackgroundTasks,
     description: str = Form(...),
     location: str = Form(...),
     is_anonymous: bool = Form(False),
@@ -51,6 +56,7 @@ def submit_complaint(
 
     coordinator = CoordinatorAgent()
     complaint = coordinator.process_new_complaint(db, complaint)
+    background_tasks.add_task(manager.broadcast, "complaint_update", {"id": complaint.id, "status": complaint.status})
     return complaint
 
 
@@ -108,7 +114,7 @@ def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{complaint_id}/status", response_model=ComplaintOut)
-def update_status(complaint_id: int, body: StatusUpdate, db: Session = Depends(get_db)):
+def update_status(complaint_id: int, body: StatusUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Staff updates complaint status.
     When status becomes 'In Progress', record work_started_at timestamp.
@@ -127,12 +133,14 @@ def update_status(complaint_id: int, body: StatusUpdate, db: Session = Depends(g
 
     db.commit()
     db.refresh(complaint)
+    background_tasks.add_task(manager.broadcast, "complaint_update", {"id": complaint.id, "status": complaint.status})
     return complaint
 
 
 @router.post("/{complaint_id}/verify", response_model=ComplaintOut)
 def verify_complaint(
     complaint_id: int,
+    background_tasks: BackgroundTasks,
     proof: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
@@ -151,11 +159,12 @@ def verify_complaint(
 
     coordinator = CoordinatorAgent()
     complaint = coordinator.process_verification(db, complaint, proof_path)
+    background_tasks.add_task(manager.broadcast, "complaint_update", {"id": complaint.id, "status": complaint.status})
     return complaint
 
 
 @router.post("/{complaint_id}/escalate", response_model=ComplaintOut)
-def manually_escalate(complaint_id: int, db: Session = Depends(get_db)):
+def manually_escalate(complaint_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Manually trigger escalation for demo purposes (simulates SLA breach).
     """
@@ -165,11 +174,12 @@ def manually_escalate(complaint_id: int, db: Session = Depends(get_db)):
 
     from agents import EscalationAgent
     EscalationAgent().run(db, complaint)
+    background_tasks.add_task(manager.broadcast, "complaint_update", {"id": complaint.id, "status": complaint.status})
     return complaint
 
 
 @router.post("/{complaint_id}/reject", response_model=ComplaintOut)
-def reject_complaint(complaint_id: int, body: RejectionCreate, db: Session = Depends(get_db)):
+def reject_complaint(complaint_id: int, body: RejectionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Staff rejects a complaint with a reason.
     Frees the staff member and re-queues the complaint as Pending.
@@ -193,4 +203,5 @@ def reject_complaint(complaint_id: int, body: RejectionCreate, db: Session = Dep
     complaint.assigned_at = None
     db.commit()
     db.refresh(complaint)
+    background_tasks.add_task(manager.broadcast, "complaint_update", {"id": complaint.id, "status": complaint.status})
     return complaint

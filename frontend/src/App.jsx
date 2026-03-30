@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import StudentPanel from './pages/StudentPanel'
 import StaffPanel from './pages/StaffPanel'
 import AdminDashboard from './pages/AdminDashboard'
+import ChatBot from './components/ChatBot'
 
 const ALL_TABS = [
   { key: 'student', label: '🎓 Student', component: StudentPanel, roles: ['student', 'admin'] },
@@ -18,6 +19,7 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const [chatPrefill, setChatPrefill] = useState(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('autofix_user')
@@ -110,13 +112,21 @@ export default function App() {
 
       {/* Page Content */}
       <main className="max-w-[1200px] mx-auto px-6 py-8">
-        {Active && <Active currentUser={user} />}
+        {Active && <Active currentUser={user} chatPrefill={chatPrefill} onClearPrefill={() => setChatPrefill(null)} />}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] py-6 px-6 text-center text-[var(--text-muted)] text-[13px] font-medium">
         AutoFix Campus © 2025 — Powered by autonomous multi-agent AI engine
       </footer>
+
+      {/* 🤖 Global AI Buddy Chatbot (Students only) */}
+      {user.role !== 'admin' && (
+        <ChatBot onPrefill={(data) => {
+          setChatPrefill(data)
+          setActiveTab('student')
+        }} />
+      )}
     </div>
   )
 }

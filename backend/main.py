@@ -12,8 +12,14 @@ from dotenv import load_dotenv
 
 from database import engine
 import models
-from routers import complaints, staff, dashboard, events, logs, ratings, auth
+from routers import complaints, staff, dashboard, events, logs, ratings, auth, chatbot
 from seed import seed
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request, WebSocket, WebSocketDisconnect
+from services.websocket_service import manager
+from limiter import limiter
 
 load_dotenv()
 
@@ -63,6 +69,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Serve uploaded images
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -75,8 +84,18 @@ app.include_router(dashboard.router)
 app.include_router(events.router)
 app.include_router(logs.router)
 app.include_router(auth.router)
+app.include_router(chatbot.router)
 
 
 @app.get("/")
 def root():
     return {"message": "AutoFix Campus API v2.0 is running 🚀", "docs": "/docs"}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)

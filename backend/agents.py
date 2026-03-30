@@ -48,8 +48,21 @@ class ComplaintAgent:
         result = classify_complaint(description, location)
         sentiment = result.get("sentiment_score") or analyze_sentiment(description)
         result["sentiment_score"] = sentiment
+
+        # 🧠 Emotional Intelligence: bump priority based on urgency score
+        original_priority = result.get("priority", "Medium")
+        if sentiment >= 0.65 and original_priority not in ("Critical",):
+            result["priority"] = "Critical"
+            result["ai_reasoning"] += f" [⚠️ Emotional escalation: distress score {int(sentiment*100)}% triggered Critical priority override.]"
+            log_agent_event("ComplaintIntel", f"😰 High distress detected ({int(sentiment*100)}%). Priority auto-escalated: {original_priority} → Critical", complaint_id, level="warning")
+        elif sentiment >= 0.35 and original_priority == "Low":
+            result["priority"] = "Medium"
+            result["ai_reasoning"] += f" [Urgency detected: priority bumped from Low to Medium.]"
+            log_agent_event("ComplaintIntel", f"Moderate urgency detected. Priority bumped: Low → Medium", complaint_id)
+
         log_agent_event("ComplaintIntel", f"Classified as '{result['issue_type']}' (priority: {result['priority']}, confidence: {result['ai_confidence']})", complaint_id)
         return result
+
 
 
 class AssignmentAgent:
@@ -149,17 +162,38 @@ class CoordinatorAgent:
         complaint.sentiment_score = intel.get("sentiment_score", 0.0)
         db.commit()
 
-        # Step 2: Assign staff
-        best_staff = AssignmentAgent().run(db, complaint)
-
-        if best_staff:
-            sla_mins = _sla_minutes(complaint)
-            complaint.assigned_staff_id = best_staff.id
-            complaint.assigned_at = datetime.now(timezone.utc)
-            complaint.sla_deadline = datetime.now(timezone.utc) + timedelta(minutes=sla_mins)
-            complaint.status = "Assigned"
+        # Step 2: HITL Safety Check & Assignment
+        from config import settings
+        if complaint.ai_confidence < settings.hitl_confidence_threshold:
+            log_agent_event("Coordinator", f"AI Confidence ({complaint.ai_confidence}) below safe threshold ({settings.hitl_confidence_threshold}). Diverting to HITL Review.", complaint.id, level="warning")
+            complaint.status = "Pending Review"
         else:
-            complaint.status = "Pending"
+            best_staff = AssignmentAgent().run(db, complaint)
+
+            if best_staff:
+                sla_mins = _sla_minutes(complaint)
+                complaint.assigned_staff_id = best_staff.id
+                complaint.assigned_at = datetime.now(timezone.utc)
+                complaint.sla_deadline = datetime.now(timezone.utc) + timedelta(minutes=sla_mins)
+                complaint.status = "Assigned"
+                
+                # Send mock or real email via email_service
+                from services.email_service import send_assignment_email
+                import threading
+                
+                complaint_data = {
+                    "id": complaint.id,
+                    "priority": complaint.priority,
+                    "issue_type": complaint.issue_type,
+                    "location": complaint.location,
+                    "description": complaint.description,
+                    "ai_reasoning": complaint.ai_reasoning
+                }
+                # Fire and forget email threading (don't block the main event loop)
+                threading.Thread(target=send_assignment_email, args=(best_staff.email, best_staff.name, complaint_data)).start()
+                
+            else:
+                complaint.status = "Pending"
 
         db.commit()
         db.refresh(complaint)

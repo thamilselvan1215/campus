@@ -11,6 +11,7 @@ from datetime import datetime
 class StaffBase(BaseModel):
     name: str
     role: str
+    email: Optional[str] = None
     phone: Optional[str] = None
     building: str
     is_available: bool = True
@@ -71,6 +72,7 @@ class RejectionCreate(BaseModel):
 class DashboardStats(BaseModel):
     total: int
     pending: int
+    pending_review: int = 0
     assigned: int
     in_progress: int
     resolved: int

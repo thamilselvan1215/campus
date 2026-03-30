@@ -8,6 +8,19 @@ const api = axios.create({
   timeout: 30000,
 })
 
+api.interceptors.request.use(config => {
+  const userStr = localStorage.getItem('autofix_user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      if (user.token) {
+        config.headers.Authorization = `Bearer ${user.token}`
+      }
+    } catch (e) {}
+  }
+  return config
+})
+
 // ── Complaints ──────────────────────────────────────────────────────────────
 export const submitComplaint = (formData) => api.post('/complaints/', formData)
 export const listComplaints = () => api.get('/complaints/')
@@ -31,6 +44,10 @@ export const getHeatmap = () => api.get('/dashboard/heatmap')
 export const getCategories = () => api.get('/dashboard/categories')
 export const getSLABreaches = () => api.get('/dashboard/sla_breaches')
 export const getLeaderboard = () => api.get('/dashboard/leaderboard')
+export const getAISummary   = () => api.get('/dashboard/summary')
+
+// ── Chatbot ───────────────────────────────────────────────────────────────────
+export const sendChatMessage = (message, state) => api.post('/chatbot/message', { message, state })
 
 // ── Events ───────────────────────────────────────────────────────────────────
 export const getTodayEvent = () => api.get('/events/today')

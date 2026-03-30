@@ -147,8 +147,8 @@ export default function StaffPanel() {
                   <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
                     🏆 {s.points}pts
                   </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.is_available ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                    {s.is_available ? '🟢' : '🔴'} {s.current_load} tasks
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.current_load === 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                    {s.current_load === 0 ? '🟢' : '🔴'} {s.current_load} tasks
                   </span>
                 </div>
               </button>

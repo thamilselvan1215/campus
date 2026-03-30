@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import {
   getDashboardStats, listComplaints, escalateComplaint, simulateChaos,
-  getHeatmap, getCategories, getSLABreaches, getLeaderboard
+  getHeatmap, getCategories, getSLABreaches, getLeaderboard, getAISummary
 } from '../api'
 import StatusBadge from '../components/StatusBadge'
 import StatsCard from '../components/StatsCard'
@@ -38,6 +38,8 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState([])
   const [slaBreaches, setSlaBreaches] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
+  const [summary, setSummary] = useState(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const [tab, setTab] = useState('overview')
   const [statusFilter, setStatusFilter] = useState('All')
   const [escalating, setEscalating] = useState({})
@@ -97,6 +99,7 @@ export default function AdminDashboard() {
     ['leaderboard', '🏆 Leaderboard'],
     ['staff', '👷 Staff'],
     ['qr', '📱 QR Codes'],
+    ['summary', '📝 AI Report'],
   ]
 
   return (
@@ -130,6 +133,7 @@ export default function AdminDashboard() {
       <div className="flex gap-4 flex-wrap mb-6">
         <StatsCard label="Total" value={stats.total} icon="📋" color="#8b5cf6" />
         <StatsCard label="Pending" value={stats.pending} icon="⏳" color="#f59e0b" />
+        <StatsCard label="Under Review" value={stats.pending_review ?? 0} icon="🔍" color="#6366f1" sub="Low-confidence AI" />
         <StatsCard label="Assigned" value={stats.assigned} icon="👷" color="#3b82f6" />
         <StatsCard label="In Progress" value={stats.in_progress} icon="🔄" color="#a855f7" />
         <StatsCard label="Resolved" value={stats.resolved} icon="✅" color="#22c55e" />
@@ -308,7 +312,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-wrap gap-4">
             <h3 className="m-0 font-bold text-[16px] text-[var(--primary-deep)] font-heading">All Complaints ({filtered.length})</h3>
             <div className="flex gap-1.5 flex-wrap">
-              {['All', 'Pending', 'Assigned', 'In Progress', 'Resolved', 'Escalated'].map(f => (
+              {['All', 'Pending', 'Pending Review', 'Assigned', 'In Progress', 'Resolved', 'Escalated'].map(f => (
                 <button key={f} onClick={() => setStatusFilter(f)} className={`
                   px-3 py-1.5 rounded-full text-[12px] font-bold cursor-pointer transition-all border
                   ${statusFilter === f ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}
@@ -425,8 +429,8 @@ export default function AdminDashboard() {
                       <td className="py-3 px-4 text-gray-500 text-[13px]">{s.role}</td>
                       <td className="py-3 px-4 text-gray-600 text-[13px]">{s.building}</td>
                       <td className="py-3 px-4">
-                        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${s.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {s.is_available ? '🟢 Free' : '🔴 Busy'}
+                        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${s.current_load === 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {s.current_load === 0 ? '🟢 Free' : '🔴 Busy'}
                         </span>
                       </td>
                       <td className={`py-3 px-4 font-bold ${s.current_load > 2 ? 'text-amber-500' : 'text-gray-500'}`}>{s.current_load}</td>
@@ -470,6 +474,83 @@ export default function AdminDashboard() {
                 <QRCodeBadge key={loc} location={loc} />
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── AI EXECUTIVE SUMMARY ── */}
+      {tab === 'summary' && (
+        <div className="animate-fade-in max-w-[800px]">
+          <div className="card">
+            <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+              <div>
+                <h3 className="m-0 font-bold text-[18px] text-[var(--primary-deep)] font-heading">📝 AI Executive Report</h3>
+                <p className="text-[var(--text-muted)] text-sm mt-1">Autonomous analysis of all campus maintenance activity.</p>
+              </div>
+              <button
+                className="btn-primary !bg-gradient-to-r from-indigo-600 to-purple-600 !border-none shadow-lg"
+                onClick={async () => {
+                  setSummaryLoading(true)
+                  try { const r = await getAISummary(); setSummary(r.data) }
+                  catch (e) { console.error(e) }
+                  finally { setSummaryLoading(false) }
+                }}
+                disabled={summaryLoading}
+              >
+                {summaryLoading ? <><span className="spinner w-4 h-4 border-white" />Generating...</> : '🤖 Generate AI Report'}
+              </button>
+            </div>
+
+            {!summary && !summaryLoading && (
+              <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                <div className="text-5xl mb-4">📊</div>
+                <p className="text-gray-500 font-medium">Click "Generate AI Report" to create an autonomous executive summary.</p>
+                <p className="text-gray-400 text-sm mt-2">The AI will analyze all complaints, staff performance, and hotspots.</p>
+              </div>
+            )}
+
+            {summaryLoading && (
+              <div className="text-center py-16">
+                <div className="spinner w-10 h-10 border-[3px] border-indigo-500 border-t-transparent mx-auto mb-4" />
+                <p className="text-indigo-600 font-semibold">AI is analyzing campus data...</p>
+              </div>
+            )}
+
+            {summary && !summaryLoading && (
+              <div className="animate-fade-in">
+                {/* Quick stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  {[
+                    { label: 'Total', val: summary.stats.total, color: '#8b5cf6' },
+                    { label: 'Resolved', val: `${summary.stats.resolution_rate_pct}%`, color: '#22c55e' },
+                    { label: 'Escalated', val: summary.stats.escalated, color: '#ef4444' },
+                    { label: 'Avg Time', val: summary.stats.avg_resolution_minutes ? `${summary.stats.avg_resolution_minutes}m` : 'N/A', color: '#0ea5e9' },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
+                      <div className="font-black text-2xl" style={{ color }}>{val}</div>
+                      <div className="text-xs text-gray-500 font-semibold mt-1 uppercase tracking-wide">{label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Summary text */}
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-6">
+                  <div className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line font-medium">
+                    {summary.summary.split('**').map((part, i) =>
+                      i % 2 === 1 ? <strong key={i} className="text-indigo-800">{part}</strong> : part
+                    )}
+                  </div>
+                </div>
+
+                {/* Copy button */}
+                <button
+                  className="mt-4 btn-ghost text-sm"
+                  onClick={() => navigator.clipboard.writeText(summary.summary.replace(/\*\*/g, ''))}
+                >
+                  📋 Copy to Clipboard
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

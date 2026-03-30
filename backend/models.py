@@ -13,6 +13,7 @@ class Staff(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     role = Column(String, nullable=False)           # e.g. Electrician, Cleaner
+    email = Column(String, nullable=True)           # For email notifications
     phone = Column(String, nullable=True)
     building = Column(String, nullable=False)       # Location/zone
     is_available = Column(Boolean, default=True)

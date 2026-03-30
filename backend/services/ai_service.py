@@ -42,17 +42,21 @@ URGENCY_KEYWORDS = ["urgent", "emergency", "immediately", "help", "can't work", 
 def classify_complaint(description: str, location: str) -> dict:
     """
     Classify a complaint. Returns: {issue_type, priority, ai_confidence, extracted_location, ai_reasoning, sentiment_score}
-    Strategy: Gemini → OpenAI → Mock
+    Strategy: PII Redaction -> Gemini → OpenAI → Mock
     """
+    # Simple PII Redaction
+    safe_desc = re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}', '[REDACTED EMAIL]', description)
+    safe_desc = re.sub(r'\b\d{10}\b', '[REDACTED PHONE]', safe_desc)
+
     if not USE_MOCK_AI and GEMINI_API_KEY:
-        result = _classify_with_gemini(description, location)
+        result = _classify_with_gemini(safe_desc, location)
         if result:
             return result
     if not USE_MOCK_AI and OPENAI_API_KEY:
-        result = _classify_with_openai(description, location)
+        result = _classify_with_openai(safe_desc, location)
         if result:
             return result
-    return _classify_with_mock(description, location)
+    return _classify_with_mock(safe_desc, location)
 
 
 def verify_proof_image(image_path: str, issue_type: str) -> dict:
@@ -166,9 +170,11 @@ Location: "{location}"
 
 Return ONLY valid JSON, no markdown, no explanation."""
 
-        response = model.generate_content(prompt)
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
         raw = response.text.strip()
-        raw = re.sub(r"```json|```", "", raw).strip()
         result = json.loads(raw)
         result["extracted_location"] = location
         return result
@@ -197,11 +203,11 @@ Return ONLY valid JSON, no explanation."""
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
+            response_format={ "type": "json_object" },
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
         )
         raw = response.choices[0].message.content.strip()
-        raw = re.sub(r"```json|```", "", raw).strip()
         result = json.loads(raw)
         result["extracted_location"] = location
         return result

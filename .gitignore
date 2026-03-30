@@ -1,10 +1,13 @@
 # Backend
-backend/__pycache__/
-backend/*.pyc
+**/__pycache__/
+**/*.py[cod]
+*$py.class
 backend/.env
 backend/autofix.db
 backend/uploads/
 backend/.pytest_cache/
+backend/*.log
+backend/connection_test*.txt
 
 # Frontend
 frontend/node_modules/
